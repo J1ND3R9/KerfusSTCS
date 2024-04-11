@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "botForTRPO": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "BOT_TOKEN": "MTIyODAxODc1ODE1NzcyOTc5Mw.GLMp40.5cCHbBfihtFQ3-SdLB_3UISHxe-TFAUMgtTGhY"
+      }
+    }
+  }
+}

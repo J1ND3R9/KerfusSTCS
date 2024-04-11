@@ -1,0 +1,37 @@
+﻿using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace botForTRPO.SlashCommands
+{
+    internal class DebugCommands : ApplicationCommandModule
+    {
+        [SlashCommand("пинг", "Показывает задержку соединения с ботом")]
+        private async Task Ping(InteractionContext ctx)
+        {
+            var embed = new DiscordEmbedBuilder()
+                .WithTitle($"Мяу! Моя задержка: {ctx.Client.Ping}мс")
+                .WithColor(DiscordColor.HotPink);
+
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                new DiscordInteractionResponseBuilder().AddEmbed(embed));
+        }
+
+        [SlashCommand("статистика", "Показывает статистику участника")]
+        private async Task DebugUser(InteractionContext ctx,
+            [Option("пользователь", "Статистика определенного участника")] DiscordUser user = null)
+        {
+            if (user == null)
+                user = ctx.Member;
+            else
+                user = (DiscordMember)user;
+
+            // Пока он ничего не делает
+        }
+    }
+}
