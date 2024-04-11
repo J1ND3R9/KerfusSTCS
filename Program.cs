@@ -37,6 +37,11 @@ namespace botForTRPO
             await Task.Delay(-1);
         }
 
+        private async Task Game_RandomBreakServer() // Поломка сервера
+        {
+            
+        }
+
         #region Дебаг слэш команд
         private static Task SlashCommandSuccessfullyExecuted(SlashCommandsExtension sender, DSharpPlus.SlashCommands.EventArgs.SlashCommandExecutedEventArgs args)
         {

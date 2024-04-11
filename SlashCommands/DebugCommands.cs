@@ -22,16 +22,10 @@ namespace botForTRPO.SlashCommands
                 new DiscordInteractionResponseBuilder().AddEmbed(embed));
         }
 
-        [SlashCommand("статистика", "Показывает статистику участника")]
-        private async Task DebugUser(InteractionContext ctx,
-            [Option("пользователь", "Статистика определенного участника")] DiscordUser user = null)
+        [SlashCommand("статистика", "Показывает статистику")]
+        private async Task DebugUser(InteractionContext ctx)
         {
-            if (user == null)
-                user = ctx.Member;
-            else
-                user = (DiscordMember)user;
-
-            // Пока он ничего не делает
+            
         }
     }
 }
