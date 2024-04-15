@@ -14,7 +14,7 @@ namespace botForTRPO.SlashCommands
 {
     class DebugCommands : ApplicationCommandModule
     {
-        
+
         public static int maxPages = 2;
         public static int countForPage = 21;
         public static KerfusContext Kerfus = new();
@@ -46,14 +46,14 @@ namespace botForTRPO.SlashCommands
             }
 
         }
-        
+
         public class ServersData : IAutocompleteProvider
         {
             public async Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext ctx)
             {
                 var satellite = ctx.FocusedOption.Value;
                 List<DiscordAutoCompleteChoice> choices = new();
-                
+
                 Satellite? haveBreak = Kerfus.Satellites.FirstOrDefault(s => s.IsBreak);
                 if (haveBreak == null)
                 {
@@ -67,6 +67,28 @@ namespace botForTRPO.SlashCommands
                 }
                 return choices;
             }
+        }
+        [SlashCommand("уведомления", "Куда бот должен отправлять уведомления по игре?")]
+        private async Task setNotify(InteractionContext ctx,
+            [Option("канал", "Куда отправлять уведомления?")] DiscordChannel channelForNotify)
+        {
+            if (channelForNotify.Type != ChannelType.Text)
+            {
+                var embed = new DiscordEmbedBuilder().WithTitle($"Канал, на который будут приходить уведомления, должен быть текстовым!");
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                return;
+            }
+            ChannelsForNotification allowed = new()
+            {
+                GuildID = (long)ctx.Guild.Id,
+                ChannelID = (long)channelForNotify.Id,
+            };
+            Kerfus.ChannelsForNotifications.Add(allowed);
+            Kerfus.SaveChanges();
+            var embedNotify = new DiscordEmbedBuilder().WithTitle($"Я поставила уведомления на новый канал!");
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                new DiscordInteractionResponseBuilder().AddEmbed(embedNotify).AsEphemeral());
         }
 
         [SlashCommand("ремонт", "Починить сервер")]
@@ -84,10 +106,10 @@ namespace botForTRPO.SlashCommands
             }
             Satellite server = Kerfus.Satellites.First(s => s.CodeName == serverID);
             var serverInstructionEmbed = new DiscordEmbedBuilder().WithTitle($"Починка сервера [{server.CodeName}]").WithDescription("Керфур не очень самостоятелен, и поэтому ему требуется ваша помощь." +
-                "Вы должны правильно отвечать на лёгкие математические вопросы. Если ответ получается отрицательным - то ответ нужно выбрать не учитывая минус." +
-                "Если же ответ получается больше 9 - то ответ нужно выбрать не учитывая десятки." +
-                "Пример: 1 - 3 (ОТВЕТ: 2)" +
-                "Пример: 9 + 9 (ОТВЕТ: 8)");
+                "Вы должны правильно отвечать на лёгкие математические вопросы.\nЕсли ответ получается отрицательным - то ответ нужно выбрать не учитывая минус." +
+                "\nЕсли же ответ получается больше 9 - то ответ нужно выбрать не учитывая десятки." +
+                "\nПример: 1 - 3 (ОТВЕТ: 2)" +
+                "\nПример: 9 + 9 (ОТВЕТ: 8)");
             var button = new DiscordButtonComponent(ButtonStyle.Success, "beginServerFix", "Начинаем");
             await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
                 new DiscordInteractionResponseBuilder().AddEmbed(serverInstructionEmbed).AddComponents(button).AsEphemeral());

@@ -5,9 +5,9 @@ using System.Collections.Generic;
 
 namespace botForTRPO.Models;
 
-public partial class AllowedChannel
+public partial class ChannelsForNotification
 {
-    public string RuleFor { get; set; }
+    public long GuildID { get; set; }
 
     public long? ChannelID { get; set; }
 }

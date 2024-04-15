@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using botForTRPO.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System;
 using System.Collections.Generic;
@@ -10,11 +11,18 @@ namespace botForTRPO.GameClasses
 {
     public class ServerFixGame
     {
-        public static bool mistaken = false;
-        public static int taskReady = 0;
-        public static int taskMaxCount = 5;
+        public bool mistaken = false;
+        public int taskReady = 0;
+        public int taskMaxCount = 1;
+        public static Satellite satellite { get; set; }
         public static Random r = new();
 
+        public ServerFixGame(Satellite s)
+        {
+            satellite = s;
+        }
+
+        public Satellite getSatellite() { return satellite; }
         public string getMathFunc()
         {
             int operandIndex = r.Next(1, 3);
@@ -28,20 +36,23 @@ namespace botForTRPO.GameClasses
                     operand = '-';
                     break;
             }
-            char[] chars = new char[]
+
+            char x1 = Convert.ToChar(x.ToString());
+            char y1 = Convert.ToChar(y.ToString());
+            char[] chars =
             {
-                Convert.ToChar(x),
-                Convert.ToChar(y),
-                operand
+                x1,
+                operand,
+                y1
             };
             return new string(chars);
         }
 
         public void getAnswer(int userAnswer, string mathFunc)
         {
-            int x = Convert.ToInt32(mathFunc[0]);
+            int x = Convert.ToInt32(mathFunc[0].ToString());
             char operand = mathFunc[1];
-            int y = Convert.ToInt32(mathFunc[2]);
+            int y = Convert.ToInt32(mathFunc[2].ToString());
             int answer = 0;
             switch (operand)
             {
@@ -59,6 +70,10 @@ namespace botForTRPO.GameClasses
                 double divForString = answer / 10.0;
                 answer = Convert.ToInt32(divForString.ToString()[2].ToString());
             }
+            if (answer == userAnswer)
+                return;
+            else
+                mistaken = true;
         }
     }
 }

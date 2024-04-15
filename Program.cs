@@ -51,41 +51,85 @@ namespace botForTRPO
         private static decimal chanceBreak = 5;
         private static async void timerServers(object? sender, ElapsedEventArgs e)
         {
-            if (chanceBreak > r.Next(0, 101))
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            List<Satellite> allServers = Kerfus.Satellites.Where(s => !s.IsBreak).ToList();
+            if (!allServers.Any())
+            {
+                await Console.Out.WriteLineAsync("[Все сервера уже сломаны!]");
+                Console.ResetColor();
+                return;
+            }
+            
+            await Console.Out.WriteLineAsync("[Ломаем сервер...]");
+            if (chanceBreak >= r.Next(1, 101))
                 await Game_RandomBreakServer();
             else
+            {
                 chanceBreak *= (decimal)1.2;
+                await Console.Out.WriteLineAsync($"[Сервер не был сломан | Текущий шанс: {Math.Round(chanceBreak, 1)}%]");
+            }
+            Console.ResetColor();
         }
 
         private static async Task Game_RandomBreakServer() // Поломка сервера
         {
             List<Satellite> allServers = Kerfus.Satellites.ToList();
-            Satellite server = Kerfus.Satellites.First(s => s.ID == r.Next(1, allServers.Count + 1));
+
+            long randomServer = r.Next(1, allServers.Count + 1);
+            Satellite server = Kerfus.Satellites.First(s => s.ID == randomServer);
             while (server.IsBreak)
                 server = Kerfus.Satellites.First(s => s.ID == r.Next(1, allServers.Count + 1));
+
             server.IsBreak = true;
+            
+
+            chanceBreak /= (decimal)3;
+
+            await Console.Out.WriteLineAsync($"[Сервер {server.CodeName} поломан! | Текущий шанс: {Math.Round(chanceBreak, 1)}%]");
+            Console.ResetColor();
+            if (chanceBreak > 65 && r.Next(1, 3) == 1)
+            {
+                List<Satellite> serverCheckBreaking = Kerfus.Satellites.Where(s => !s.IsBreak).ToList();
+                if (!serverCheckBreaking.Any())
+                {
+                    await Console.Out.WriteLineAsync("[Все сервера уже сломаны!]");
+                    Console.ResetColor();
+                    return;
+                }
+                randomServer = r.Next(1, allServers.Count + 1);
+                Satellite server1 = Kerfus.Satellites.First(s => s.ID == randomServer);
+                while (server1.IsBreak)
+                    server1 = Kerfus.Satellites.First(s => s.ID == r.Next(1, allServers.Count + 1));
+
+                server1.IsBreak = true;
+
+                Kerfus.SaveChanges();
+
+                await Game_ServerIsDownNotify(server1);
+            }
+            Kerfus.SaveChanges();
+            await Game_ServerIsDownNotify(server);
         }
 
         private static async Task Game_ServerIsDownNotify(Satellite server) // Уведомление по поломке сервера
         {
-            long? channelID = Kerfus.AllowedChannels.Where(s => s.RuleFor == "Серверам").Select(s => s.ChannelID).FirstOrDefault();
             var alarmEmoji = DiscordEmoji.FromName(Client, ":red_circle:");
             string title = $"{alarmEmoji} [{server.CodeName}] перестал отвечать на запросы";
-            if (r.Next(0, 2) == 1)
+            int random = r.Next(0, 10);
+
+            if (random > 5)
                 title = $"{alarmEmoji} Мяу!! [{server.CodeName}] перестал отвечать на запросы!!!";
+            else if (random > 7)
+                title = $"{alarmEmoji} Мяу! Мяу! Мяу! Нам нужно починить сервер [{server.CodeName}]!";
+            else
+                title = $"Гаф! {alarmEmoji} Сервер [{server.CodeName}] нужно починить!";
+
             var embed = new DiscordEmbedBuilder().WithTitle(title);
 
-            DiscordGuild guild = await Client.GetGuildAsync(1228018468516003851);
-            DiscordChannel channel;
-            if (channelID == null)
-            {
-                embed.WithDescription("Вы не настроили на какой сервер я должна отправлять сообщения о поломке серверов, поэтому я создала его сама, мяу!");
-                channel = await guild.CreateTextChannelAsync("уведомления-сервера");
-            }
-            else
-                channel = guild.GetChannel((ulong)channelID);
+            List<ChannelsForNotification> notifications = Kerfus.ChannelsForNotifications.ToList();
 
-            await channel.SendMessageAsync(embed);
+            foreach (ChannelsForNotification notification in notifications)
+                await Client.SendMessageAsync(await Client.GetChannelAsync((ulong)notification.ChannelID), embed);
         }
 
         #region Взаимодействие с интерактивностями
@@ -97,9 +141,14 @@ namespace botForTRPO
             ulong messageID = e.Message.Id;
             switch (e.Id)
             {
-                case "nextPageStatSattelites":
-                case "pastPageStatSattelites":
+                case string x when (e.Id.EndsWith("PageStatSattelites")):
                     await handler.nextPage(e);
+                    return;
+                case "beginServerFix":
+                    await handler.startFixServerGame(e);
+                    return;
+                case "selectFixServers":
+                    await handler.serverFixGame(e);
                     return;
             }
         }

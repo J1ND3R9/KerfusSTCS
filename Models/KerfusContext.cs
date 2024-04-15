@@ -17,9 +17,9 @@ public partial class KerfusContext : DbContext
     {
     }
 
-    public virtual DbSet<AllowedChannel> AllowedChannels { get; set; }
-
     public virtual DbSet<CatchedSignal> CatchedSignals { get; set; }
+
+    public virtual DbSet<ChannelsForNotification> ChannelsForNotifications { get; set; }
 
     public virtual DbSet<Satellite> Satellites { get; set; }
 
@@ -31,13 +31,6 @@ public partial class KerfusContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AllowedChannel>(entity =>
-        {
-            entity.HasKey(e => e.RuleFor).HasName("PK__AllowedC__57C8AFAB71D77A0A");
-
-            entity.Property(e => e.RuleFor).HasMaxLength(100);
-        });
-
         modelBuilder.Entity<CatchedSignal>(entity =>
         {
             entity.HasKey(e => e.ID).HasName("PK__CatchedS__3214EC2762381D11");
@@ -52,15 +45,25 @@ public partial class KerfusContext : DbContext
                 .HasConstraintName("FK__CatchedSi__Signa__68487DD7");
         });
 
+        modelBuilder.Entity<ChannelsForNotification>(entity =>
+        {
+            entity.HasKey(e => e.GuildID).HasName("PK__Channels__3A3F890F8DA44FCD");
+
+            entity.Property(e => e.GuildID).ValueGeneratedNever();
+        });
+
         modelBuilder.Entity<Satellite>(entity =>
         {
-            entity.HasKey(e => e.CodeName).HasName("PK__Satellit__404488D4E92018F6");
+            entity.HasKey(e => e.ID).HasName("PK__Satellit__3214EC2755EE918E");
 
             entity.ToTable("Satellite");
 
-            entity.Property(e => e.CodeName).HasMaxLength(20);
+            entity.HasIndex(e => e.CodeName, "UQ__Satellit__404488D582CCF9AE").IsUnique();
+
+            entity.Property(e => e.CodeName)
+                .IsRequired()
+                .HasMaxLength(20);
             entity.Property(e => e.Hashcode).HasMaxLength(10);
-            entity.Property(e => e.ID).ValueGeneratedOnAdd();
             entity.Property(e => e.Repairs).HasDefaultValueSql("((0))");
         });
 

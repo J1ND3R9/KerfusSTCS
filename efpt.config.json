@@ -15,11 +15,11 @@
    "T4TemplatePath": null,
    "Tables": [
       {
-         "Name": "[dbo].[AllowedChannels]",
+         "Name": "[dbo].[CatchedSignal]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[CatchedSignal]",
+         "Name": "[dbo].[ChannelsForNotifications]",
          "ObjectType": 0
       },
       {
