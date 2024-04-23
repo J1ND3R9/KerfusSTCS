@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -47,27 +48,80 @@ namespace botForTRPO.SlashCommands
 
         }
 
+        public class ServersDataBroken : IAutocompleteProvider
+        {
+            public async Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext ctx)
+            {
+                var satellite = ctx.FocusedOption.Value;
+                var satellites = Kerfus.Satellites.Where(s => s.CodeName.Contains(satellite.ToString()) && s.IsBreak)
+                    .Select(s => new DiscordAutoCompleteChoice(s.CodeName, s.CodeName));
+                if (!satellites.Any())
+                {
+                    return new List<DiscordAutoCompleteChoice>()
+                    {
+                        new DiscordAutoCompleteChoice("Нет сломанных серверов", "n")
+                    };
+                }
+                return satellites;
+            }
+        }
+
         public class ServersData : IAutocompleteProvider
         {
             public async Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext ctx)
             {
                 var satellite = ctx.FocusedOption.Value;
-                List<DiscordAutoCompleteChoice> choices = new();
-
-                Satellite? haveBreak = Kerfus.Satellites.FirstOrDefault(s => s.IsBreak);
-                if (haveBreak == null)
+                var satellites = Kerfus.Satellites.Where(s => s.CodeName.Contains(satellite.ToString()) && !s.IsBreak)
+                    .Select(s => new DiscordAutoCompleteChoice(s.CodeName, s.CodeName));
+                if (!satellites.Any())
                 {
-                    choices.Add(new("Нет сломанных серверов", "n"));
-                    return choices;
+                    return new List<DiscordAutoCompleteChoice>()
+                    {
+                        new DiscordAutoCompleteChoice("Все сервера уже сломаны", "n")
+                    };
                 }
-                List<Satellite> satellites = Kerfus.Satellites.Where(s => s.CodeName.Contains(satellite.ToString()) && s.IsBreak).ToList();
-                for (int i = 0; i < satellites.Count; i++)
-                {
-                    choices.Add(new(satellites[i].CodeName, satellites[i].CodeName));
-                }
-                return choices;
+                return satellites;
             }
         }
+
+        [SlashCommand("сломать", "Какой сломать сервер?")]
+        private async Task breakServerForce(InteractionContext ctx,
+            [Autocomplete(typeof(ServersData))]
+            [Option("сервер", "Какой сервер ломаем?")] string codeName)
+        {
+            if (codeName == "n")
+            {
+                var embed = new DiscordEmbedBuilder().WithTitle("Нет сломанных серверов!").WithColor(DiscordColor.HotPink);
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                return;
+            }
+            Satellite satellite = Kerfus.Satellites.First(s => s.CodeName == codeName);
+            if (satellite == null)
+            {
+                var embed = new DiscordEmbedBuilder().WithTitle("Сервер не найден!").WithColor(DiscordColor.HotPink);
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                return;
+            }
+            if (satellite.IsBreak)
+            {
+                var embed = new DiscordEmbedBuilder().WithTitle("Сервер уже сломан!").WithColor(DiscordColor.HotPink);
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                    new DiscordInteractionResponseBuilder().AddEmbed(embed).AsEphemeral());
+                return;
+            }
+
+            satellite.IsBreak = true;
+            Kerfus.Satellites.Update(satellite);
+            Kerfus.SaveChanges();
+            var notifyServerIsBroke = new DiscordEmbedBuilder().WithTitle($"Я сломала сервер [{codeName}]!").WithColor(DiscordColor.HotPink);
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                new DiscordInteractionResponseBuilder().AddEmbed(notifyServerIsBroke));
+            await Program.Game_ServerIsDownNotify(satellite);
+        }
+
+
         [SlashCommand("уведомления", "Куда бот должен отправлять уведомления по игре?")]
         private async Task setNotify(InteractionContext ctx,
             [Option("канал", "Куда отправлять уведомления?")] DiscordChannel channelForNotify)
@@ -85,7 +139,7 @@ namespace botForTRPO.SlashCommands
                 ChannelID = (long)channelForNotify.Id,
             };
             Kerfus.ChannelsForNotifications.Add(allowed);
-            Kerfus.SaveChanges();
+            await Kerfus.SaveChangesAsync();
             var embedNotify = new DiscordEmbedBuilder().WithTitle($"Я поставила уведомления на новый канал!");
             await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
                 new DiscordInteractionResponseBuilder().AddEmbed(embedNotify).AsEphemeral());
@@ -93,7 +147,7 @@ namespace botForTRPO.SlashCommands
 
         [SlashCommand("ремонт", "Починить сервер")]
         private async Task FixServer(InteractionContext ctx,
-            [Autocomplete(typeof(ServersData))]
+            [Autocomplete(typeof(ServersDataBroken))]
             [Option("сервер", "Выберите сервер для ремонта")] string serverID)
         {
             if (serverID == "n")
@@ -113,11 +167,9 @@ namespace botForTRPO.SlashCommands
             var button = new DiscordButtonComponent(ButtonStyle.Success, "beginServerFix", "Начинаем");
             await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
                 new DiscordInteractionResponseBuilder().AddEmbed(serverInstructionEmbed).AddComponents(button).AsEphemeral());
-
         }
         private async Task StatsSatellites(InteractionContext ctx)
         {
-            //var lineEmoji = DiscordEmoji.FromGuildEmote(ctx.Client, 1228356438909259786);
             var embed = new DiscordEmbedBuilder().WithTitle($"{DiscordEmoji.FromName(ctx.Client, ":satellite:")} Сервера")
                 .WithThumbnail("https://i.imgur.com/qOLHHqD.png")
                 .WithDescription("Сервера нужно чинить для ловли сигналов. Каждый сломанный сервер замедляет процесс поиска сигналов, а если сломано больше половины - то процесс полностью останавливается.")

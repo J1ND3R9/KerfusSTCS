@@ -49,7 +49,7 @@ namespace botForTRPO.Handlers
             {
                 string code = satellites[i].CodeName;
                 bool breakNow = satellites[i].IsBreak;
-                string breakNowText = breakNow ? $"0/4 {DiscordEmoji.FromName(Client, ":red_circle:")}" : "4/4";
+                string breakNowText = breakNow ? $"0/4" : "4/4";
                 long? repairs = satellites[i].Repairs;
                 newEmbed.AddField($"{DiscordEmoji.FromName(Client, ":satellite:")} " + code.ToString(), $"{breakNowText} | {repairs}", true);
                 if (i > countForPage - 2)
@@ -97,6 +97,7 @@ namespace botForTRPO.Handlers
                 var whoopsieEmbed = new DiscordEmbedBuilder().WithTitle("Упс! Данный сервер уже починили").WithColor(DiscordColor.HotPink);
                 await e.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
                     new DiscordInteractionResponseBuilder().AddEmbed(whoopsieEmbed));
+                return;
             }
 
             ServerFixGame gameClass = new(satellite);
@@ -138,6 +139,7 @@ namespace botForTRPO.Handlers
                 var whoopsieEmbed = new DiscordEmbedBuilder().WithTitle("Упс! Данный сервер уже починили").WithColor(DiscordColor.HotPink);
                 await e.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
                     new DiscordInteractionResponseBuilder().AddEmbed(whoopsieEmbed));
+                return;
             }
 
             gameClass.taskReady++;
@@ -164,7 +166,7 @@ namespace botForTRPO.Handlers
                 {
                     satellite.IsBreak = false;
                     satellite.Repairs++;
-                    Kerfus.Satellites.Update(satellite).DetectChanges();
+                    Kerfus.Satellites.Update(satellite);
                     await Kerfus.SaveChangesAsync();
 
                     newEmbed.WithTitle($"Вы починили сервер [{satellite.CodeName}]");

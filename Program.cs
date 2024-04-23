@@ -3,6 +3,7 @@ using botForTRPO.SlashCommands;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using Microsoft.EntityFrameworkCore;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Timers;
@@ -11,7 +12,7 @@ namespace botForTRPO
 {
     public class Program
     {
-        public static KerfusContext Kerfus = new();
+        public static KerfusContext Kerfus = new KerfusContext();
         private static DiscordClient Client { get; set; }
         private static DiscordRestClient RestClient { get; set; }
         private static System.Timers.Timer timer = new();
@@ -51,7 +52,7 @@ namespace botForTRPO
         private static decimal chanceBreak = 5;
         private static async void timerServers(object? sender, ElapsedEventArgs e)
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.ForegroundColor = ConsoleColor.Yellow;  
             List<Satellite> allServers = Kerfus.Satellites.Where(s => !s.IsBreak).ToList();
             if (!allServers.Any())
             {
@@ -102,16 +103,15 @@ namespace botForTRPO
                     server1 = Kerfus.Satellites.First(s => s.ID == r.Next(1, allServers.Count + 1));
 
                 server1.IsBreak = true;
-
-                Kerfus.SaveChanges();
-
+                Kerfus.Update(server1);
                 await Game_ServerIsDownNotify(server1);
             }
+            Kerfus.Update(server);
             Kerfus.SaveChanges();
             await Game_ServerIsDownNotify(server);
         }
 
-        private static async Task Game_ServerIsDownNotify(Satellite server) // Уведомление по поломке сервера
+        public static async Task Game_ServerIsDownNotify(Satellite server) // Уведомление по поломке сервера
         {
             var alarmEmoji = DiscordEmoji.FromName(Client, ":red_circle:");
             string title = $"{alarmEmoji} [{server.CodeName}] перестал отвечать на запросы";
@@ -122,7 +122,7 @@ namespace botForTRPO
             else if (random > 7)
                 title = $"{alarmEmoji} Мяу! Мяу! Мяу! Нам нужно починить сервер [{server.CodeName}]!";
             else
-                title = $"Гаф! {alarmEmoji} Сервер [{server.CodeName}] нужно починить!";
+                title = $"Миау! {alarmEmoji} Сервер [{server.CodeName}] нужно починить!";
 
             var embed = new DiscordEmbedBuilder().WithTitle(title);
 

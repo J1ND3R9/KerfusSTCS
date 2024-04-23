@@ -13,7 +13,7 @@ namespace botForTRPO.GameClasses
     {
         public bool mistaken = false;
         public int taskReady = 0;
-        public int taskMaxCount = 1;
+        public int taskMaxCount = 6;
         public static Satellite satellite { get; set; }
         public static Random r = new();
 
@@ -65,10 +65,9 @@ namespace botForTRPO.GameClasses
             }
             if (answer < 0)
                 answer *= -1;
-            if (answer > 10)
+            if (answer > 9)
             {
-                double divForString = answer / 10.0;
-                answer = Convert.ToInt32(divForString.ToString()[2].ToString());
+                answer = Convert.ToInt32(answer.ToString()[1].ToString());
             }
             if (answer == userAnswer)
                 return;
